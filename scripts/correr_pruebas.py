@@ -47,7 +47,12 @@ def ejecutar(prog, archivo, inicio="", sin_comp="0", mostrar="0"):
     args = [binario(prog), archivo]
     if inicio != "" or sin_comp != "0" or mostrar != "0":
         args += [inicio if inicio != "" else "0", sin_comp, mostrar]
-    salida = subprocess.run(args, capture_output=True, text=True, check=True).stdout
+    proc = subprocess.run(args, capture_output=True, text=True)
+    if proc.returncode != 0:
+        print("Fallo al correr " + " ".join(args))
+        print("Mensaje del programa " + (proc.stderr.strip() or "(sin mensaje)"))
+        sys.exit(1)
+    salida = proc.stdout
     lineas = salida.strip().splitlines()
     datos = dict(par.split("=") for par in lineas[0].split())
     return datos, lineas
