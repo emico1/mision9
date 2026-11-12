@@ -77,3 +77,17 @@ document.getElementById("bodyDirigido").innerHTML = dir.slice(0, 6).map(([g, e, 
   `<tr><td>${g === "escenario 3" ? "E3 dirigido" : "digrafo " + g.replace("aleatorio ", "#")}</td><td class="num best">${ent(e)}</td><td class="num">${ent(p)} (+${fmt(b, 1)}%)</td><td class="num">${ent(s)}</td></tr>`).join("");
 document.getElementById("footDirigido").textContent = `En ${peor} de ${azar.length} digrafos al azar de 100 vértices y 4,500 arcos Prim dirigido salió más caro, ${fmt(brecha, 1)}% en promedio. El AEM del grafo subyacente ignora el sentido de los arcos, por eso siempre queda abajo del óptimo dirigido.`;
 
+
+const MODOS_UF = { "tamano y compresion": "tamaño y compresión", "solo tamano": "solo unión por tamaño", "solo compresion": "solo compresión", "sin optimizaciones": "sin optimizaciones" };
+const grafosUF = [...new Set(DATOS.uf.map((r) => r[0]))];
+crearTabs(document.getElementById("tabsUF"), grafosUF, (g) => g.replace("cadena 2000", "cadena 2,000").replace("cadena 20000", "cadena 20,000"), (g) => {
+  const filas = DATOS.uf.filter((r) => r[0] === g);
+  const min = Math.min(...filas.map((r) => r[4]));
+  document.getElementById("bodyUF").innerHTML = filas.map(([, modo, s, pm, ms]) =>
+    `<tr${ms === min ? ' class="fastest"' : ""}><td>${MODOS_UF[modo]}</td><td class="num">${ent(s)}</td><td class="num">${ent(pm)}</td><td class="num">${fmt(ms, 4)}</td></tr>`).join("");
+  const iguales = filas.every((r) => r[5] === "mismo AEM");
+  document.getElementById("footUF").textContent = (g.startsWith("cadena")
+    ? "Grafo armado para que la unión sin optimizaciones forme una lista y cada consulta empiece desde el fondo. "
+    : "En grafos al azar casi todo el tiempo se va en ordenar los arcos, por eso los saltos cambian mucho más que los milisegundos. ")
+    + (iguales ? "Los cuatro modos dieron el mismo AEM." : "Algún modo dio otro AEM.");
+});

@@ -291,6 +291,19 @@ Ciclo   el arco más caro de un ciclo no hace falta en ningún AEM</span>
   </div>
 
   <div class="demo-section">
+    <h2>Optimización de Union-Find</h2>
+    <p class="dataset-note">Kruskal con Union-Find en cuatro modos sobre los mismos grafos. Con el mismo orden de arcos los cuatro dan exactamente el mismo AEM, cambia cuánto camina find para llegar a la raíz.</p>
+    <div class="tabs" id="tabsUF" role="tablist"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Modo</th><th class="num">saltos de find</th><th class="num">camino más largo</th><th class="num">ms</th></tr></thead>
+        <tbody id="bodyUF"></tbody>
+      </table>
+    </div>
+    <p class="foot" id="footUF"></p>
+  </div>
+
+  <div class="demo-section">
     <h2>El escenario dirigido</h2>
     <p class="dataset-note">Para arcos con sentido el problema es la arborescencia mínima. Prim aplicado tal cual da un árbol válido pero más caro que el óptimo de Edmonds.</p>
     <div class="table-wrap">

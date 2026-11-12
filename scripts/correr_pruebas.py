@@ -61,6 +61,36 @@ def canonico(lineas):
     return tuple(sorted(arcos))
 
 
+MODOS_UF = [("0", "tamano y compresion"), ("1", "solo tamano"), ("3", "solo compresion"), ("2", "sin optimizaciones")]
+ADVERSARIOS = [
+    ("cadena 2000", "adversario_cadena_2000.txt", "adversario", "cadena de 2,000 vertices"),
+    ("cadena 20000", "adversario_cadena_20000.txt", "adversario", "cadena de 20,000 vertices"),
+]
+
+
+def union_find_modos(reps):
+    filas = []
+    for clave, archivo, tipo, _ in ESCENARIOS + ADVERSARIOS:
+        ruta = os.path.join(DATOS, archivo)
+        tiempos = {m: [] for m, _ in MODOS_UF}
+        for _ in range(reps):
+            for m, _ in MODOS_UF:
+                d, _ = ejecutar("kruskal_union_find", ruta, "0", m, "0")
+                tiempos[m].append(float(d["tiempo_ms"]))
+        base = None
+        for m, nombre in MODOS_UF:
+            d, lineas = ejecutar("kruskal_union_find", ruta, "0", m, "1")
+            arbol = canonico(lineas)
+            base = base or arbol
+            filas.append([clave, tipo, nombre, d["costo"], d["saltos"], d["prof_max"],
+                          f"{statistics.median(tiempos[m]):.4f}", "mismo AEM" if arbol == base else "AEM distinto"])
+        print(f"union-find {clave} listo")
+    with open(os.path.join(RES, "union_find_modos.csv"), "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["escenario", "tipo", "modo", "costo", "saltos", "prof_max", "mediana_ms", "arbol"])
+        w.writerows(filas)
+
+
 def main():
     reps = 15
     for a in sys.argv[1:]:
@@ -68,6 +98,9 @@ def main():
             compilar()
         elif a.isdigit():
             reps = max(5, int(a))
+    if "--solo-union-find" in sys.argv:
+        union_find_modos(reps)
+        return
     os.makedirs(os.path.join(RES, "salidas"), exist_ok=True)
     todos = PROFESOR
     filas_t, filas_c, filas_p, filas_k = [], [], [], []
@@ -122,6 +155,8 @@ def main():
     guardar("consistencia.csv", ["escenario", "version", "costo", "aristas", "verificador", "arbol"], filas_c)
     guardar("prim_inicio.csv", ["escenario", "version", "inicio", "costo", "arbol"], filas_p)
     guardar("kruskal_descartes.csv", ["escenario", "version", "arcos_totales", "revisadas", "descartadas"], filas_k)
+
+    union_find_modos(reps)
 
     print("\nMediana en ms (" + str(reps) + " corridas)")
     nombres = [n for n, _, _ in todos] + ["V4 sin compresion"]

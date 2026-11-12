@@ -32,38 +32,50 @@ Graph load(const string& path) {
     return g;
 }
 
-struct Result { long long cost = 0; int count = 0; vector<Edge> edges; long long revisadas = 0, descartadas = 0; };
+struct Result { long long cost = 0; int count = 0; vector<Edge> edges; long long revisadas = 0, descartadas = 0, saltos = 0, profMax = 0; };
+
+// Modos de la optimizacion, 0 tamano y compresion, 1 solo tamano, 2 sin optimizaciones, 3 solo compresion
+const char* NOMBRE_MODO[] = {"tamano_y_compresion", "solo_tamano", "sin_optimizaciones", "solo_compresion"};
 
 // Union-Find, cada conjunto es un arbol y su raiz lo representa
 struct DSU {
     vector<int> parent, sz;
-    bool compress;
+    bool porTamano, compress;
+    long long saltos = 0, profMax = 0;
     // O(V)
-    DSU(int n, bool c) : parent(n), sz(n, 1), compress(c) { iota(parent.begin(), parent.end(), 0); }
-    // Sube hasta la raiz y con compresion cuelga cada nodo del camino directo de ella
-    // O(log V) sin compresion, O(alfa(V)) amortizado con compresion
+    DSU(int n, bool t, bool c) : parent(n), sz(n, 1), porTamano(t), compress(c) { iota(parent.begin(), parent.end(), 0); }
+    // Sube hasta la raiz contando los saltos y con compresion cuelga cada nodo del camino directo de ella
+    // O(profundidad), log V con union por tamano, O(alfa(V)) amortizado con las dos
     int find(int x) {
-        if (parent[x] == x) return x;
-        if (compress) return parent[x] = find(parent[x]);
-        return find(parent[x]);
+        int r = x;
+        long long prof = 0;
+        while (parent[r] != r) { r = parent[r]; prof++; }
+        saltos += prof;
+        profMax = max(profMax, prof);
+        if (compress) while (parent[x] != r) { int sig = parent[x]; parent[x] = r; x = sig; }
+        return r;
     }
-    // Union por tamano, la raiz del conjunto chico se cuelga de la del grande. Regresa false si ya estaban unidos.
+    // Con union por tamano la raiz del conjunto chico se cuelga de la del grande, sin ella la raiz de a se cuelga de la de b. Regresa false si ya estaban unidos.
     // O(costo de find)
     bool unite(int a, int b) {
         a = find(a); b = find(b);
         if (a == b) return false;
-        if (sz[a] < sz[b]) swap(a, b);
-        parent[b] = a; sz[a] += sz[b];
+        if (porTamano) {
+            if (sz[a] < sz[b]) swap(a, b);
+            parent[b] = a; sz[a] += sz[b];
+        } else {
+            parent[a] = b; sz[b] += sz[a];
+        }
         return true;
     }
 };
 
 // Kruskal con Union-Find. Toma los arcos del mas barato al mas caro y descarta el arco si unite dice que ya estaban unidos.
-// O(E log E + E alfa(V))
-Result solve(const Graph& g, int, bool compress = true) {
+// O(E log E + E alfa(V)) con las dos optimizaciones, O(E log E + E V) sin ninguna
+Result solve(const Graph& g, int, int modo = 0) {
     vector<Edge> a = g.edges;
     sort(a.begin(), a.end(), [](auto x, auto y) { return tie(x.w, x.u, x.v) < tie(y.w, y.u, y.v); });
-    DSU d(g.n, compress);
+    DSU d(g.n, modo == 0 || modo == 1, modo == 0 || modo == 3);
     Result r;
     for (auto e : a) {
         r.revisadas++;
@@ -75,25 +87,28 @@ Result solve(const Graph& g, int, bool compress = true) {
         }
     }
     if (r.count != g.n - 1) throw runtime_error("Grafo desconectado");
+    r.saltos = d.saltos;
+    r.profMax = d.profMax;
     return r;
 }
 
 // O(V^2 + E log E)
 int main(int argc, char** argv) {
-    if (argc < 2) { cerr << "Uso: programa archivo.txt [inicio_prim] [sin_compresion_0_o_1] [mostrar_0_o_1]\n"; return 1; }
+    if (argc < 2) { cerr << "Uso: programa archivo.txt [inicio_prim] [modo_union_find_0_a_3] [mostrar_0_o_1]\n"; return 1; }
     try {
         Graph g = load(argv[1]);
         int start = argc > 2 ? stoi(argv[2]) : 0;
         if (start < 0 || start >= g.n) throw runtime_error("Inicio invalido");
-        bool noComp = argc > 3 && stoi(argv[3]) == 1;
+        int modo = argc > 3 ? stoi(argv[3]) : 0;
+        if (modo < 0 || modo > 3) throw runtime_error("Modo invalido, debe ser 0, 1, 2 o 3");
         bool show = argc > 4 && stoi(argv[4]) == 1;
         auto t0 = chrono::steady_clock::now();
-        Result r = solve(g, start, !noComp);
+        Result r = solve(g, start, modo);
         auto t1 = chrono::steady_clock::now();
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         cout << "n=" << g.n << " m=" << g.edges.size() << " costo=" << r.cost << " aristas=" << r.count
              << " revisadas=" << r.revisadas << " descartadas=" << r.descartadas
-             << " compresion=" << (noComp ? 0 : 1)
+             << " modo=" << NOMBRE_MODO[modo] << " saltos=" << r.saltos << " prof_max=" << r.profMax
              << " tiempo_ms=" << fixed << setprecision(4) << ms << "\n";
         if (show) for (auto e : r.edges) cout << e.u << " " << e.v << " " << e.w << "\n";
     } catch (exception& e) { cerr << "Error: " << e.what() << "\n"; return 2; }

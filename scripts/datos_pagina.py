@@ -18,6 +18,7 @@ datos = {
     "densidad": [[int(r["V"]), int(r["E"]), float(r["densidad_pct"]), r["version"], float(r["mediana_ms"])] for r in leer("densidad.csv")],
     "descartes": [[r["escenario"], r["version"], int(r["arcos_totales"]), int(r["revisadas"]), int(r["descartadas"])] for r in leer("kruskal_descartes.csv")],
     "inicio": [[r["grafo"], r["pesos"], r["version"], int(r["inicios"]), int(r["costos_distintos"]), int(r["arboles_distintos"])] for r in leer("vertice_inicial.csv")],
+    "uf": [[r["escenario"], r["modo"], int(r["saltos"]), int(r["prof_max"]), float(r["mediana_ms"]), r["arbol"]] for r in leer("union_find_modos.csv")],
     "dirigido": [[r["grafo"], int(r["edmonds"]), int(r["prim_dirigido"]), int(r["aem_subyacente"]), float(r["brecha_prim_pct"])] for r in leer("dirigido.csv")],
     "consistencia": [[r["escenario"], r["version"], int(r["costo"]), r["verificador"], r["arbol"]] for r in leer("consistencia.csv")],
 }
